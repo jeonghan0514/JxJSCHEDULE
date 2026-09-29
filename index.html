@@ -116,10 +116,9 @@
           </div>
 
           <div class="grid grid-cols-4 gap-3">
-            <input v-model="newEvent.title" type="text" placeholder="完整動態標題 (如: [정한]캐럿들 맛있는거...)" required class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300 col-span-2">
+            <input v-model="newEvent.title" type="text" placeholder="完整動態標題 (如: [정한]캐릇들 맛있는거...)" required class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300 col-span-2">
             <input v-model="newEvent.highlight" type="text" placeholder="變色關鍵字 (如: [정한] 或 [조슈아])" class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
             
-            <!-- 若選擇全天，則用 pure date；若否，則用 datetime-local -->
             <input v-if="newEvent.isAllDay" v-model="newEvent.dateOnly" type="date" required class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
             <input v-else v-model="newEvent.date" type="datetime-local" required class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
           </div>
@@ -172,8 +171,8 @@
                   <span v-else class="text-xs font-mono font-bold text-slate-400 block leading-none">{{ timeBlock.timeStr }}</span>
                 </div>
 
-                <!-- 同一個小時內的多個行程項目 -->
-                <div class="flex-1 space-y-2 divide-y divide-dashed divide-sage-400/80">
+                <!-- 同一個小時內的多個行程項目 (改用淡綠色柔和虛線 border-sage-300/60) -->
+                <div class="flex-1 space-y-2 divide-y divide-dashed divide-sage-300/60">
                   <div v-for="item in timeBlock.items" :key="item.id" class="flex items-center justify-between first:pt-0 pt-2 group min-h-[22px]">
                     
                     <div class="flex items-center space-x-2 overflow-hidden leading-none">
@@ -492,7 +491,6 @@
         const groupedEvents = computed(() => {
           const dateGroups = {};
           
-          // 排序 logic：全天行程優先排最上面 (-1)，其餘按時間順序排序
           const sorted = [...events.value].sort((a, b) => {
             const dateA = a.isAllDay ? `${a.dateOnly || a.date.split('T')[0]}T00:00` : a.date;
             const dateB = b.isAllDay ? `${b.dateOnly || b.date.split('T')[0]}T00:00` : b.date;
