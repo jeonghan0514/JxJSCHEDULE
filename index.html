@@ -92,7 +92,7 @@
         <h3 class="text-sm font-bold text-sage-800 border-b pb-2">新增回歸動態紀錄</h3>
         
         <div class="space-y-3">
-          <!-- 平台圖示點選區 (包含新加的 Japan 官網圖示) -->
+          <!-- 平台圖示點選區 -->
           <div>
             <label class="block text-xs font-bold text-slate-500 mb-1.5">選擇發布平台 / 標籤 Icon：</label>
             <div class="flex flex-wrap gap-2.5">
@@ -109,10 +109,19 @@
             </div>
           </div>
 
+          <!-- 全天勾選與時間設定 -->
+          <div class="flex items-center space-x-2 bg-sage-50/60 p-2.5 rounded-lg border border-sage-100">
+            <input type="checkbox" id="isAllDayNew" v-model="newEvent.isAllDay" class="w-4 h-4 text-sage-600 rounded border-slate-300 focus:ring-sage-500">
+            <label for="isAllDayNew" class="text-xs font-bold text-sage-800 cursor-pointer">📌 設為全天行程 (當天優先置頂)</label>
+          </div>
+
           <div class="grid grid-cols-4 gap-3">
             <input v-model="newEvent.title" type="text" placeholder="完整動態標題 (如: [정한]캐럿들 맛있는거...)" required class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300 col-span-2">
             <input v-model="newEvent.highlight" type="text" placeholder="變色關鍵字 (如: [정한] 或 [조슈아])" class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
-            <input v-model="newEvent.date" type="datetime-local" required class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
+            
+            <!-- 若選擇全天，則用 pure date；若否，則用 datetime-local -->
+            <input v-if="newEvent.isAllDay" v-model="newEvent.dateOnly" type="date" required class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
+            <input v-else v-model="newEvent.date" type="datetime-local" required class="p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
           </div>
           <div>
             <input v-model="newEvent.link" type="url" placeholder="貼上網址 (選填，例如: https://...)" class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
@@ -142,7 +151,7 @@
             </span>
           </div>
 
-          <!-- 當日區塊 -->
+          <!-- 當日區塊 (完全緊湊垂直置中) -->
           <div :class="gIdx % 2 === 0 ? 'bg-white' : 'bg-sage-50/50'" class="flex flex-row items-center transition py-2.5">
             
             <!-- 左側日期欄 -->
@@ -159,7 +168,8 @@
                 
                 <!-- 小時置中標籤 -->
                 <div class="w-11 shrink-0 text-left flex items-center">
-                  <span class="text-xs font-mono font-bold text-slate-400 block leading-none">{{ timeBlock.timeStr }}</span>
+                  <span v-if="timeBlock.isAllDay" class="text-[11px] font-bold bg-sage-200/80 text-sage-800 px-1.5 py-0.5 rounded leading-none">全天</span>
+                  <span v-else class="text-xs font-mono font-bold text-slate-400 block leading-none">{{ timeBlock.timeStr }}</span>
                 </div>
 
                 <!-- 同一個小時內的多個行程項目 -->
@@ -171,6 +181,9 @@
                       <div class="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 shadow-2xs" :title="item.platform">
                         <img :src="getPlatformIcon(item.platform)" :alt="item.platform" class="w-full h-full object-cover" @error="handleImgError">
                       </div>
+
+                      <!-- 全天標籤（選填提示） -->
+                      <span v-if="item.isAllDay" class="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded shrink-0">ALL DAY</span>
 
                       <!-- 動態標題 -->
                       <a v-if="item.link" :href="item.link" target="_blank" rel="noopener noreferrer" 
@@ -295,6 +308,11 @@
             </div>
           </div>
 
+          <div class="flex items-center space-x-2 bg-sage-50/60 p-2.5 rounded-lg border border-sage-100">
+            <input type="checkbox" id="isAllDayEdit" v-model="editingEvent.isAllDay" class="w-4 h-4 text-sage-600 rounded border-slate-300 focus:ring-sage-500">
+            <label for="isAllDayEdit" class="text-xs font-bold text-sage-800 cursor-pointer">📌 設為全天行程 (當天優先置頂)</label>
+          </div>
+
           <div class="space-y-3">
             <div>
               <label class="block text-xs font-bold text-slate-500 mb-1">動態標題：</label>
@@ -306,7 +324,8 @@
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-500 mb-1">日期與時間：</label>
-              <input v-model="editingEvent.date" type="datetime-local" required class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
+              <input v-if="editingEvent.isAllDay" v-model="editingEvent.dateOnly" type="date" required class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
+              <input v-else v-model="editingEvent.date" type="datetime-local" required class="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-sage-300">
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-500 mb-1">外連網址 (選填)：</label>
@@ -409,7 +428,6 @@
           '2026-12-25': true
         };
 
-        // 包含新增的 Seventeen Japan 選項，兼顧 JPLogo.jpg 與 JPLogo.png 副檔名
         const platformOptions = [
           { name: 'Instagram', icon: './IG.jpg' },
           { name: 'X', icon: './X.jpg' },
@@ -419,7 +437,6 @@
           { name: 'Japan', icon: './JPLogo.jpg' }
         ];
 
-        // 圖片自動容錯（若檔名為 JPLogo.png 則自動降級相容）
         const handleImgError = (e) => {
           if (e.target.src.includes('JPLogo.jpg')) {
             e.target.src = './JPLogo.png';
@@ -428,7 +445,7 @@
           }
         };
 
-        const newEvent = ref({ title: '', highlight: '', date: '', platform: 'Instagram', link: '' });
+        const newEvent = ref({ title: '', highlight: '', date: '', dateOnly: '', isAllDay: false, platform: 'Instagram', link: '' });
         const newMerch = ref({ name: '', price: null, status: '已付款', note: '' });
 
         onMounted(() => {
@@ -474,11 +491,31 @@
 
         const groupedEvents = computed(() => {
           const dateGroups = {};
-          const sorted = [...events.value].sort((a, b) => new Date(a.date) - new Date(b.date));
+          
+          // 排序 logic：全天行程優先排最上面 (-1)，其餘按時間順序排序
+          const sorted = [...events.value].sort((a, b) => {
+            const dateA = a.isAllDay ? `${a.dateOnly || a.date.split('T')[0]}T00:00` : a.date;
+            const dateB = b.isAllDay ? `${b.dateOnly || b.date.split('T')[0]}T00:00` : b.date;
+            
+            if (dateA === dateB) {
+              if (a.isAllDay) return -1;
+              if (b.isAllDay) return 1;
+              return 0;
+            }
+            return new Date(dateA) - new Date(dateB);
+          });
 
           sorted.forEach(item => {
-            if (!item.date) return;
-            const d = new Date(item.date);
+            let d;
+            if (item.isAllDay) {
+              const dStr = item.dateOnly || (item.date ? item.date.split('T')[0] : '');
+              if (!dStr) return;
+              d = new Date(`${dStr}T00:00:00`);
+            } else {
+              if (!item.date) return;
+              d = new Date(item.date);
+            }
+
             const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             const monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
             const monthTitle = `${d.getFullYear()} 年 ${d.getMonth()+1} 月`;
@@ -487,7 +524,7 @@
             const dayOfWeek = d.getDay();
             const weekDay = weekDays[dayOfWeek];
             
-            const timeStr = `${String(d.getHours()).padStart(2, '0')}:00`;
+            const timeStr = item.isAllDay ? 'ALL_DAY' : `${String(d.getHours()).padStart(2, '0')}:00`;
             const isHoliday = (dayOfWeek === 0 || dayOfWeek === 6) || Boolean(holidaysMap[dateKey]);
 
             if (!dateGroups[dateKey]) {
@@ -512,12 +549,15 @@
             }
 
             const monthEventCount = sorted.filter(e => {
-              const ed = new Date(e.date);
+              const edStr = e.isAllDay ? e.dateOnly : e.date;
+              if (!edStr) return false;
+              const ed = new Date(edStr);
               return `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2, '0')}` === group.monthKey;
             }).length;
 
             const timeBlocks = Object.keys(group.timeMap).map(timeStr => ({
               timeStr,
+              isAllDay: timeStr === 'ALL_DAY',
               items: group.timeMap[timeStr]
             }));
 
@@ -540,8 +580,23 @@
         const pendingItemsCount = computed(() => merchList.value.filter(item => item.status === '待付款').length);
 
         const addEvent = async () => {
-          await push(dbRef(db, 'events'), newEvent.value);
-          newEvent.value = { title: '', highlight: '', date: '', platform: 'Instagram', link: '' };
+          const payload = {
+            title: newEvent.value.title,
+            highlight: newEvent.value.highlight || '',
+            platform: newEvent.value.platform,
+            link: newEvent.value.link || '',
+            isAllDay: Boolean(newEvent.value.isAllDay)
+          };
+
+          if (payload.isAllDay) {
+            payload.dateOnly = newEvent.value.dateOnly;
+            payload.date = `${newEvent.value.dateOnly}T00:00`;
+          } else {
+            payload.date = newEvent.value.date;
+          }
+
+          await push(dbRef(db, 'events'), payload);
+          newEvent.value = { title: '', highlight: '', date: '', dateOnly: '', isAllDay: false, platform: 'Instagram', link: '' };
           showAddEvent.value = false;
         };
         const deleteEvent = async (id) => {
@@ -558,12 +613,34 @@
         };
 
         const openEditEventModal = (item) => {
-          editingEvent.value = { highlight: '', ...item };
+          const isAllDay = Boolean(item.isAllDay);
+          editingEvent.value = { 
+            highlight: '', 
+            ...item, 
+            isAllDay,
+            dateOnly: item.dateOnly || (item.date ? item.date.split('T')[0] : '') 
+          };
         };
         const saveEditEvent = async () => {
           if (!editingEvent.value) return;
-          const { id, title, highlight, date, platform, link } = editingEvent.value;
-          await update(dbRef(db, `events/${id}`), { title, highlight: highlight || '', date, platform, link: link || '' });
+          const { id, title, highlight, date, dateOnly, isAllDay, platform, link } = editingEvent.value;
+          
+          const updateData = {
+            title,
+            highlight: highlight || '',
+            platform,
+            link: link || '',
+            isAllDay: Boolean(isAllDay)
+          };
+
+          if (isAllDay) {
+            updateData.dateOnly = dateOnly;
+            updateData.date = `${dateOnly}T00:00`;
+          } else {
+            updateData.date = date;
+          }
+
+          await update(dbRef(db, `events/${id}`), updateData);
           editingEvent.value = null;
         };
 
