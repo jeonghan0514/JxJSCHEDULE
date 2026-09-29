@@ -92,7 +92,7 @@
         <h3 class="text-sm font-bold text-sage-800 border-b pb-2">新增回歸動態紀錄</h3>
         
         <div class="space-y-3">
-          <!-- 平台圖示點選區 -->
+          <!-- 平台圖示點選區 (包含新加的 Japan 官網圖示) -->
           <div>
             <label class="block text-xs font-bold text-slate-500 mb-1.5">選擇發布平台 / 標籤 Icon：</label>
             <div class="flex flex-wrap gap-2.5">
@@ -103,7 +103,7 @@
                 @click="newEvent.platform = p.name"
                 :class="newEvent.platform === p.name ? 'ring-2 ring-sage-600 bg-sage-50 border-sage-500 font-bold' : 'border-slate-200 bg-white hover:bg-slate-50'"
                 class="flex items-center space-x-2 px-3 py-1.5 rounded-xl border transition shadow-2xs">
-                <img :src="p.icon" :alt="p.name" class="w-5 h-5 rounded-full object-cover border border-slate-200">
+                <img :src="p.icon" :alt="p.name" class="w-5 h-5 rounded-full object-cover border border-slate-200" @error="handleImgError">
                 <span class="text-xs text-slate-700">{{ p.name }}</span>
               </button>
             </div>
@@ -142,7 +142,7 @@
             </span>
           </div>
 
-          <!-- 當日區塊 (完全緊湊垂直置中) -->
+          <!-- 當日區塊 -->
           <div :class="gIdx % 2 === 0 ? 'bg-white' : 'bg-sage-50/50'" class="flex flex-row items-center transition py-2.5">
             
             <!-- 左側日期欄 -->
@@ -167,9 +167,9 @@
                   <div v-for="item in timeBlock.items" :key="item.id" class="flex items-center justify-between first:pt-0 pt-2 group min-h-[22px]">
                     
                     <div class="flex items-center space-x-2 overflow-hidden leading-none">
-                      <!-- 圓形 Logo 圖片標籤 (微調放大至 w-5 h-5 / 20px) -->
+                      <!-- 圓形 Logo 圖片標籤 -->
                       <div class="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 shadow-2xs" :title="item.platform">
-                        <img :src="getPlatformIcon(item.platform)" :alt="item.platform" class="w-full h-full object-cover">
+                        <img :src="getPlatformIcon(item.platform)" :alt="item.platform" class="w-full h-full object-cover" @error="handleImgError">
                       </div>
 
                       <!-- 動態標題 -->
@@ -289,7 +289,7 @@
                 @click="editingEvent.platform = p.name"
                 :class="editingEvent.platform === p.name ? 'ring-2 ring-sage-600 bg-sage-50 border-sage-500 font-bold' : 'border-slate-200 bg-white hover:bg-slate-50'"
                 class="flex items-center space-x-2 px-3 py-1.5 rounded-xl border transition text-xs">
-                <img :src="p.icon" :alt="p.name" class="w-5 h-5 rounded-full object-cover">
+                <img :src="p.icon" :alt="p.name" class="w-5 h-5 rounded-full object-cover" @error="handleImgError">
                 <span>{{ p.name }}</span>
               </button>
             </div>
@@ -409,13 +409,24 @@
           '2026-12-25': true
         };
 
+        // 包含新增的 Seventeen Japan 選項，兼顧 JPLogo.jpg 與 JPLogo.png 副檔名
         const platformOptions = [
           { name: 'Instagram', icon: './IG.jpg' },
           { name: 'X', icon: './X.jpg' },
           { name: 'Weverse', icon: './WVS.jpg' },
           { name: 'Youtube', icon: './YT.png' },
-          { name: 'Seventeen', icon: './logo.jpg' }
+          { name: 'Seventeen', icon: './logo.jpg' },
+          { name: 'Japan', icon: './JPLogo.jpg' }
         ];
+
+        // 圖片自動容錯（若檔名為 JPLogo.png 則自動降級相容）
+        const handleImgError = (e) => {
+          if (e.target.src.includes('JPLogo.jpg')) {
+            e.target.src = './JPLogo.png';
+          } else if (e.target.src.includes('JPLogo.png')) {
+            e.target.src = './logo.jpg';
+          }
+        };
 
         const newEvent = ref({ title: '', highlight: '', date: '', platform: 'Instagram', link: '' });
         const newMerch = ref({ name: '', price: null, status: '已付款', note: '' });
@@ -568,7 +579,7 @@
 
         return {
           currentTab, events, groupedEvents, merchList, showAddEvent, showAddMerch, newEvent, newMerch,
-          platformOptions, getPlatformIcon, renderCustomHighlight,
+          platformOptions, handleImgError, getPlatformIcon, renderCustomHighlight,
           totalPrice, pendingItemsCount,
           addEvent, deleteEvent, addMerch, deleteMerch,
           editingEvent, editingMerch, openEditEventModal, saveEditEvent, openEditMerchModal, saveEditMerch
