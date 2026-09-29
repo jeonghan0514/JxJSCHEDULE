@@ -109,18 +109,22 @@
                 
                 <!-- 小時置中標籤 -->
                 <div class="w-11 shrink-0 text-left flex items-center">
-                  <span class="text-xs font-mono font-bold text-slate-400 block leading-none">{{ timeBlock.timeStr }}</span>
+                  <span v-if="timeBlock.isAllDay" class="text-[11px] font-bold bg-sage-200/80 text-sage-800 px-1.5 py-0.5 rounded leading-none">全天</span>
+                  <span v-else class="text-xs font-mono font-bold text-slate-400 block leading-none">{{ timeBlock.timeStr }}</span>
                 </div>
 
-                <!-- 同一個小時內的多個行程項目 -->
-                <div class="flex-1 space-y-2 divide-y divide-dashed divide-sage-400/80">
+                <!-- 同一個小時內的多個行程項目 (淡綠色柔和虛線) -->
+                <div class="flex-1 space-y-2 divide-y divide-dashed divide-sage-300/60">
                   <div v-for="item in timeBlock.items" :key="item.id" class="flex items-center justify-between first:pt-0 pt-2 group min-h-[22px]">
                     
                     <div class="flex items-center space-x-2 overflow-hidden leading-none">
                       <!-- 圓形 Logo 圖片標籤 (w-5 h-5 / 20px) -->
                       <div class="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 shadow-2xs" :title="item.platform">
-                        <img :src="getPlatformIcon(item.platform)" :alt="item.platform" class="w-full h-full object-cover">
+                        <img :src="getPlatformIcon(item.platform)" :alt="item.platform" class="w-full h-full object-cover" @error="handleImgError">
                       </div>
+
+                      <!-- 全天標籤 -->
+                      <span v-if="item.isAllDay" class="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded shrink-0">ALL DAY</span>
 
                       <!-- 動態標題 -->
                       <a v-if="item.link" :href="item.link" target="_blank" rel="noopener noreferrer" 
@@ -193,8 +197,17 @@
           { name: 'X', icon: './X.jpg' },
           { name: 'Weverse', icon: './WVS.jpg' },
           { name: 'Youtube', icon: './YT.png' },
-          { name: 'Seventeen', icon: './logo.jpg' }
+          { name: 'Seventeen', icon: './logo.jpg' },
+          { name: 'Japan', icon: './JPLogo.jpg' }
         ];
+
+        const handleImgError = (e) => {
+          if (e.target.src.includes('JPLogo.jpg')) {
+            e.target.src = './JPLogo.png';
+          } else if (e.target.src.includes('JPLogo.png')) {
+            e.target.src = './logo.jpg';
+          }
+        };
 
         onMounted(() => {
           onValue(dbRef(db, 'events'), (snapshot) => {
@@ -235,11 +248,30 @@
 
         const groupedEvents = computed(() => {
           const dateGroups = {};
-          const sorted = [...events.value].sort((a, b) => new Date(a.date) - new Date(b.date));
+          
+          const sorted = [...events.value].sort((a, b) => {
+            const dateA = a.isAllDay ? `${a.dateOnly || a.date.split('T')[0]}T00:00` : a.date;
+            const dateB = b.isAllDay ? `${b.dateOnly || b.date.split('T')[0]}T00:00` : b.date;
+            
+            if (dateA === dateB) {
+              if (a.isAllDay) return -1;
+              if (b.isAllDay) return 1;
+              return 0;
+            }
+            return new Date(dateA) - new Date(dateB);
+          });
 
           sorted.forEach(item => {
-            if (!item.date) return;
-            const d = new Date(item.date);
+            let d;
+            if (item.isAllDay) {
+              const dStr = item.dateOnly || (item.date ? item.date.split('T')[0] : '');
+              if (!dStr) return;
+              d = new Date(`${dStr}T00:00:00`);
+            } else {
+              if (!item.date) return;
+              d = new Date(item.date);
+            }
+
             const dateKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             const monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
             const monthTitle = `${d.getFullYear()} 年 ${d.getMonth()+1} 月`;
@@ -248,7 +280,7 @@
             const dayOfWeek = d.getDay();
             const weekDay = weekDays[dayOfWeek];
             
-            const timeStr = `${String(d.getHours()).padStart(2, '0')}:00`;
+            const timeStr = item.isAllDay ? 'ALL_DAY' : `${String(d.getHours()).padStart(2, '0')}:00`;
             const isHoliday = (dayOfWeek === 0 || dayOfWeek === 6) || Boolean(holidaysMap[dateKey]);
 
             if (!dateGroups[dateKey]) {
@@ -273,12 +305,15 @@
             }
 
             const monthEventCount = sorted.filter(e => {
-              const ed = new Date(e.date);
+              const edStr = e.isAllDay ? e.dateOnly : e.date;
+              if (!edStr) return false;
+              const ed = new Date(edStr);
               return `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2, '0')}` === group.monthKey;
             }).length;
 
             const timeBlocks = Object.keys(group.timeMap).map(timeStr => ({
               timeStr,
+              isAllDay: timeStr === 'ALL_DAY',
               items: group.timeMap[timeStr]
             }));
 
@@ -298,7 +333,7 @@
         });
 
         return {
-          events, groupedEvents, platformOptions, getPlatformIcon, renderCustomHighlight
+          events, groupedEvents, platformOptions, handleImgError, getPlatformIcon, renderCustomHighlight
         };
       }
     }).mount('#app');
